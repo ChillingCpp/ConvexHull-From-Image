@@ -24,4 +24,4 @@ It gives you better collision detection and collision solver.
 
 # Solution for non-transparent background images
 
-You have to add some pixels with same color represent the convex hull vertices of the image. and rewrite the checkColor function to match your pixels colors.
+You have to add some pixels with same color represent the convex hull vertices of the image. and rewrite the checkcolor function to match your pixels colors.
