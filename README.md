@@ -10,11 +10,11 @@ You only need to run this one time, and then apply the sprite's transform to bou
 
 # Example
 
-![Alt text](example/horse.png)
+![screenshot](example/horse.PNG)
 
-![Alt text](example/linux.png)
+![screenshot](example/linux.PNG)
 
-![Alt text](example/virus.png)
+![screenshot](example/virus.PNG)
 
 You can change the maxPolygonVertices to higher value, but I dont suggest doing that.
 
