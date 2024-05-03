@@ -67,6 +67,11 @@ bool is_left_turn(const sf::Vector2f &p, const sf::Vector2f &q, const sf::Vector
 	return (q.x - p.x) * (r.y - p.y) > (r.x - p.x) * (q.y - p.y); 
 	// (q[0] - p[0])*(r[1] - p[1]) > (r[0] - p[0])*(q[1] - p[1])
 }
+// optimised monotone chain algorithm
+// tested with 5000x5000 image
+// new optimised run nearly 2.8x faster than old algorithm
+// old : 2486.14ms
+// new : 889.051ms
 std::vector<sf::Vector2f> convex_hull(std::vector<sf::Vector2f> &P)
 {
 	size_t n = P.size(), k = 0;
