@@ -61,38 +61,88 @@ std::vector<sf::Vector2f> linesimplycation(std::vector<sf::Vector2f> &hull, floa
 
 	return points;
 }
+bool is_left_turn(const sf::Vector2f &p, const sf::Vector2f &q, const sf::Vector2f &r)
+{
+
+	return (q.x - p.x) * (r.y - p.y) > (r.x - p.x) * (q.y - p.y); 
+	// (q[0] - p[0])*(r[1] - p[1]) > (r[0] - p[0])*(q[1] - p[1])
+}
 std::vector<sf::Vector2f> convex_hull(std::vector<sf::Vector2f> &P)
 {
 	size_t n = P.size(), k = 0;
 	if (n <= 3)
-		return P; 
-	std::vector<sf::Vector2f> H(2 * n);
-	// build lower hull;
-	for (size_t i = 0; i < n; ++i)
+		return P;
+	// data structures
+	std::vector<sf::Vector2f> upper;
+	std::vector<sf::Vector2f> lower;
+
+	// // Endpoints
+	sf::Vector2f p0 = P[0];
+	sf::Vector2f pn = P.back();
+
+	// // Initial line(s) of separation
+	double ku = (pn.y - p0.y) / (pn.x - p0.x + 1e-12);
+	double nu = p0.y - ku * p0.x;
+	double kl = ku;
+	double nl = nu;
+
+	// Add left endpoint
+	upper.push_back(p0);
+	lower.push_back(p0);
+
+	// // Construct the middle of the upper and lower hull sections
+	for (int j = 1; j < n - 1; j++)
 	{
-		while (k >= 2 && cross(H[k - 2], H[k - 1], P[i]) <= 0)
-			k--;
-		H[k++] = P[i];
+		sf::Vector2f p = P[j];
+		if (p.y > ku * p.x + nu)
+		{
+			while (upper.size() > 1 && is_left_turn(upper[upper.size() - 2], upper[upper.size() - 1], p))
+			{
+				upper.pop_back();
+			}
+			upper.push_back(p);
+			ku = (pn.y - p0.y) / (pn.x - p0.x + 1e-12);
+			nu = p0.y - ku * p0.x;
+		}
+		// p[0] == p.x
+		// p[1] == p.y
+		else if (p.y < kl * p.x + nl)
+		{
+			while (lower.size() > 1 && !(is_left_turn(lower[lower.size() -2], lower[lower.size() -1], p)))
+				lower.pop_back();
+
+			lower.push_back(p);
+			kl = (pn.y - p.y) / (pn.x - p.x + 1e-12);
+			nl = p.y - kl * p.x;
+		}
 	}
-	// build upper hull;
-	for (size_t i = n - 1, t = k + 1; i > 0; --i)
+
+	// // Add right endpoint (only once due to merging that follows)
+	while (upper.size() > 1 && is_left_turn(upper[upper.size() - 2], upper[upper.size() - 1], pn))
+		upper.pop_back();
+
+	while (lower.size() > 1 && !(is_left_turn(lower[lower.size() -2], lower[lower.size() -1], pn)))
+		lower.pop_back();
+
+	upper.push_back(pn);
+
+	// # Reverse lower hull section
+	std::reverse(lower.begin(), lower.end());
+
+	// # Merge hull sections
+	upper.insert(upper.end(), lower.begin(), lower.end());
+	for (int i = 0; i < upper.size(); i++)
 	{
-		while (k >= t && cross(H[k - 2], H[k - 1], P[i - 1]) <= 0)
-			k--;
-		H[k++] = P[i - 1];
+		upper[i] = sf::Vector2f(upper[i].y, upper[i].x);
 	}
-	H.resize(k - 1);
-	for (int i = 0; i < H.size(); i++)
-	{
-		H[i] = sf::Vector2f(H[i].y, H[i].x);
-	}
-	return H;
+
+	return upper;
 };
 void TransformHull(std::vector<sf::Vector2f> &H, const sf::Transform &transform)
 {
 	for (int i = 0; i < H.size(); i++)
 	{
-		H[i] = transform*H[i];
+		H[i] = transform * H[i];
 	}
 }
 int main()
@@ -101,7 +151,7 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(900, 700), "Convex Hull generator");
 
 	sf::Texture t;
-	t.loadFromFile("image/linux.png"); 
+	t.loadFromFile("image/linux.png");
 	sf::Image image = t.copyToImage();
 
 	sf::Sprite sprite;
@@ -110,7 +160,7 @@ int main()
 	std::vector<sf::Vector2f> points;
 
 	sf::Vector2u size(t.getSize());
-	
+
 	// transform image pixels to coordinates positions;
 	for (int i = 0; i < size.y; i++)
 	{
@@ -122,8 +172,8 @@ int main()
 			}
 		}
 	}
-	sf::Vector2f pos(window.getSize()/(size_t)2);
-	
+	sf::Vector2f pos(window.getSize() / (size_t)2);
+
 	sprite.setOrigin(sf::Vector2f(t.getSize() / (size_t)2));
 	sprite.setPosition(pos);
 	sprite.rotate(10);
@@ -133,7 +183,7 @@ int main()
 	std::vector<sf::Vector2f> H = convex_hull(points);
 
 	H = linesimplycation(H); // reduce convexhull vertices for better performance
-	
+
 	TransformHull(H, sprite.getTransform());
 
 	sf::VertexArray vertices(sf::LineStrip, H.size() + 1);
@@ -142,11 +192,13 @@ int main()
 	{
 		vertices[i] = sf::Vertex(H[i], sf::Color::Red);
 	}
-	vertices[vertices.getVertexCount() - 1] = H[0];
+	vertices[vertices.getVertexCount() - 1] = sf::Vertex(H[0], sf::Color::Red);
+
+	sf::Clock clock;
 
 	while (window.isOpen())
 	{
-
+		float dt = clock.restart().asSeconds();
 		sf::Event e;
 		while (window.pollEvent(e))
 		{
