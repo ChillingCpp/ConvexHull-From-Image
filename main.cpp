@@ -142,13 +142,15 @@ std::vector<sf::Vector2f> convex_hull(std::vector<sf::Vector2f> &P)
 	}
 
 	return upper;
-};
-void TransformHull(std::vector<sf::Vector2f> &H, const sf::Transform &transform)
+}
+std::vector<sf::Vector2f> TransformHull(std::vector<sf::Vector2f> &H, const sf::Transform &transform)
 {
+	std::vector<sf::Vector2f> hull(H.size());
 	for (int i = 0; i < H.size(); i++)
 	{
-		H[i] = transform * H[i];
+		hull[i] = transform * H[i];
 	}
+	return hull;
 }
 int main()
 {
@@ -185,11 +187,11 @@ int main()
 	sprite.setScale(1.2f, 1.2f);
 
 	// those points have already been sorted
-	std::vector<sf::Vector2f> H = convex_hull(points);
+	std::vector<sf::Vector2f> hull = convex_hull(points);
 
-	H = linesimplycation(H); // reduce convexhull vertices for better performance
+	hull = linesimplycation(hull); // reduce convexhull vertices for better performance
 
-	TransformHull(H, sprite.getTransform());
+	std::vector<sf::Vector2f> H = TransformHull(hull, sprite.getTransform());
 
 	sf::VertexArray vertices(sf::LineStrip, H.size() + 1);
 
